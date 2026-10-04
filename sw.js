@@ -1,5 +1,5 @@
 // Keeps the app shell available offline. Book data lives in IndexedDB, not here.
-const CACHE = "reading-shelf-v1";
+const CACHE = "reading-shelf-v2";
 const SHELL = ["./", "index.html", "manifest.webmanifest", "icon-192.png", "icon-512.png", "apple-touch-icon.png"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL))); self.skipWaiting(); });
 self.addEventListener("activate", e => {

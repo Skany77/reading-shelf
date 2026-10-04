@@ -117,7 +117,8 @@ select.field { width: auto; }
 .empty h2 { font-family: var(--font-display); color: var(--ink); font-size: 20px; margin: 0; }
 .empty p { margin: 0; max-width: 42ch; }
 
-.syncnote { font-size: 12px; color: var(--muted); }
+.backup { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; justify-content: space-between; border-top: 1px solid var(--line); padding-top: 16px; font-size: 13px; color: var(--muted); }
+.backup .brow { display: flex; gap: 8px; flex-wrap: wrap; }
 
 /* Dialog */
 dialog { border: 0; padding: 0; border-radius: 14px; width: min(760px, calc(100vw - 24px)); max-height: calc(100vh - 32px); max-height: calc(100dvh - 32px); background: var(--surface); color: var(--ink); box-shadow: 0 20px 60px rgba(0,0,0,.35); }
@@ -194,6 +195,14 @@ textarea.field { resize: vertical; min-height: 96px; line-height: 1.6; }
   </div>
 
   <main id="shelf" class="shelf" aria-live="polite"></main>
+  <div id="backup" class="backup" hidden>
+    <span id="backupNote">ข้อมูลเก็บในเครื่องนี้ ควรสำรองไว้เป็นระยะ</span>
+    <span class="brow">
+      <button class="btn" type="button" id="exportBtn">สำรองข้อมูล</button>
+      <button class="btn" type="button" id="importBtn">นำเข้าข้อมูล</button>
+      <input type="file" id="importFile" accept="application/json,.json" hidden>
+    </span>
+  </div>
   <div id="empty" class="empty" hidden>
     <h2 id="emptyTitle">ชั้นยังว่างอยู่</h2>
     <p id="emptyText">เพิ่มหนังสือเล่มแรก ใส่รูปปก รายละเอียด และให้คะแนนได้เลย</p>
@@ -300,6 +309,9 @@ textarea.field { resize: vertical; min-height: 96px; line-height: 1.6; }
   function useLocal(note) {
     Object.assign(store, localStore(setBooks));
     $("syncnote").textContent = note || "บันทึกไว้ในเบราว์เซอร์นี้";
+    $("backup").hidden = false;
+    try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) {}
+    try { const t = localStorage.getItem("lastBackup"); if (t) $("backupNote").textContent = "สำรองล่าสุด " + new Date(+t).toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric" }); } catch (e) {}
     markReady();
   }
 
@@ -519,6 +531,30 @@ textarea.field { resize: vertical; min-height: 96px; line-height: 1.6; }
     if (!btn.classList.contains("armed")) { btn.classList.add("armed"); btn.textContent = "กดอีกครั้งเพื่อยืนยันการลบ"; return; }
     try { await ready; await store.remove(editing.id); closeEditor(); toast("ลบแล้ว"); }
     catch (e) { $("formErr").textContent = "ลบไม่สำเร็จ ลองอีกครั้ง"; $("formErr").hidden = false; }
+  };
+
+  $("exportBtn").onclick = () => {
+    const data = JSON.stringify({ app: "reading-shelf", version: 1, exportedAt: new Date().toISOString(), books }, null, 1);
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([data], { type: "application/json" }));
+    a.download = "reading-shelf-" + new Date().toISOString().slice(0, 10) + ".json";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    try { localStorage.setItem("lastBackup", String(Date.now())); } catch (e) {}
+    $("backupNote").textContent = "สำรองล่าสุด วันนี้";
+    toast("สร้างไฟล์สำรองแล้ว");
+  };
+  $("importBtn").onclick = () => $("importFile").click();
+  $("importFile").onchange = async e => {
+    const f = e.target.files[0]; e.target.value = ""; if (!f) return;
+    try {
+      const j = JSON.parse(await f.text());
+      const list = (Array.isArray(j) ? j : j.books || []).filter(b => b && b.id && b.title);
+      if (!list.length) throw new Error("empty");
+      await ready;
+      for (const b of list) await store.save(b);
+      toast("นำเข้า " + list.length + " เล่มแล้ว");
+    } catch (err) { toast("ไฟล์นี้นำเข้าไม่ได้ ใช้ไฟล์ที่สำรองจากแอปนี้"); }
   };
 
   render();
