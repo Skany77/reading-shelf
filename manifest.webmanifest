@@ -1,0 +1,16 @@
+{
+  "name": "ชั้นหนังสือของฉัน",
+  "short_name": "ชั้นหนังสือ",
+  "description": "บันทึกหนังสือที่อ่าน พร้อมรูปปก รายละเอียด และคะแนน",
+  "lang": "th",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f5f6f2",
+  "theme_color": "#1f5c46",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
